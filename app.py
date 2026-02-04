@@ -2,6 +2,16 @@ import os
 from flask import Flask, request, jsonify
 from pytrends.request import TrendReq
 
+import urllib3
+import requests
+import pytrends
+print("VERSIONS:",
+      "pytrends=", getattr(pytrends, "__version__", "unknown"),
+      "requests=", requests.__version__,
+      "urllib3=", urllib3.__version__,
+      flush=True)
+
+
 app = Flask(__name__)
 
 @app.get("/")
