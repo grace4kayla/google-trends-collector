@@ -1,3 +1,6 @@
-flask
-pytrends
-pandas
+flask==2.3.3
+pytrends==4.9.2
+pandas==2.1.4
+urllib3<2
+requests<2.32
+
