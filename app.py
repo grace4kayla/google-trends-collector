@@ -1,22 +1,28 @@
 import os
+import traceback
 from flask import Flask, request, jsonify
 from pytrends.request import TrendReq
 
 import urllib3
 import requests
 import pytrends
-print("VERSIONS:",
-      "pytrends=", getattr(pytrends, "__version__", "unknown"),
-      "requests=", requests.__version__,
-      "urllib3=", urllib3.__version__,
-      flush=True)
 
+# Print versions on startup (helps debugging Render env)
+print(
+    "VERSIONS:",
+    "pytrends=", getattr(pytrends, "__version__", "unknown"),
+    "requests=", requests.__version__,
+    "urllib3=", urllib3.__version__,
+    flush=True
+)
 
 app = Flask(__name__)
+
 
 @app.get("/")
 def health():
     return "OK", 200
+
 
 @app.post("/trends")
 def trends():
@@ -25,9 +31,11 @@ def trends():
 
         keywords = data.get("keywords", [])
         geo = data.get("geo", "ZA")
-       timeframe = str(data.get("timeframe", "today 3-m")).strip().lstrip("=")
 
-        # Accept keywords as comma-separated string too (just in case)
+        # Clean timeframe (remove whitespace, newline, leading "=")
+        timeframe = str(data.get("timeframe", "today 3-m")).strip().lstrip("=")
+
+        # Accept keywords as comma-separated string too
         if isinstance(keywords, str):
             keywords = [k.strip() for k in keywords.split(",") if k.strip()]
 
@@ -39,13 +47,21 @@ def trends():
             }), 400
 
         # Build trends request
-        pytrends = TrendReq(hl="en-US", tz=360, retries=2, backoff_factor=0.2)
-        pytrends.build_payload(kw_list=keywords, timeframe=timeframe, geo=geo)
+        pytrends_client = TrendReq(hl="en-US", tz=360, retries=2, backoff_factor=0.2)
+        pytrends_client.build_payload(
+            kw_list=keywords,
+            timeframe=timeframe,
+            geo=geo
+        )
 
-        df = pytrends.interest_over_time()
+        df = pytrends_client.interest_over_time()
 
         if df is None or df.empty:
-            return jsonify({"geo": geo, "timeframe": timeframe, "series": []}), 200
+            return jsonify({
+                "geo": geo,
+                "timeframe": timeframe,
+                "series": []
+            }), 200
 
         result = []
         for kw in keywords:
@@ -59,19 +75,24 @@ def trends():
                     "value": int(val)
                 })
 
-            result.append({"keyword": kw, "points": points})
+            result.append({
+                "keyword": kw,
+                "points": points
+            })
 
-        return jsonify({"geo": geo, "timeframe": timeframe, "series": result}), 200
+        return jsonify({
+            "geo": geo,
+            "timeframe": timeframe,
+            "series": result
+        }), 200
 
-   import traceback
-
-except Exception as e:
-    print("collector_failed:", repr(e), flush=True)
-    print(traceback.format_exc(), flush=True)
-    return jsonify({
-        "error": "collector_failed",
-        "message": str(e)
-    }), 500
+    except Exception as e:
+        print("collector_failed:", repr(e), flush=True)
+        print(traceback.format_exc(), flush=True)
+        return jsonify({
+            "error": "collector_failed",
+            "message": str(e)
+        }), 500
 
 
 if __name__ == "__main__":
