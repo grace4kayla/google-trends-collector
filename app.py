@@ -15,7 +15,7 @@ def trends():
 
         keywords = data.get("keywords", [])
         geo = data.get("geo", "ZA")
-        timeframe = data.get("timeframe", "today 3-m")
+       timeframe = str(data.get("timeframe", "today 3-m")).strip().lstrip("=")
 
         # Accept keywords as comma-separated string too (just in case)
         if isinstance(keywords, str):
@@ -53,12 +53,16 @@ def trends():
 
         return jsonify({"geo": geo, "timeframe": timeframe, "series": result}), 200
 
-    except Exception as e:
-        # Return the error so you can debug (instead of generic 500)
-        return jsonify({
-            "error": "collector_failed",
-            "message": str(e)
-        }), 500
+   import traceback
+
+except Exception as e:
+    print("collector_failed:", repr(e), flush=True)
+    print(traceback.format_exc(), flush=True)
+    return jsonify({
+        "error": "collector_failed",
+        "message": str(e)
+    }), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "10000"))
