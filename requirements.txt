@@ -1,4 +1,4 @@
 flask
 pytrends
 pandas
-
+urllib3<2
